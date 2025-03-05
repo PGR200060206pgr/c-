@@ -1,1 +1,201 @@
+以下是原始代码与修改后代码的完整对比：
 
+---
+
+### 一、关键函数对比（原代码 vs 修改后代码）
+
+#### 1. Create_Ploynominal（插入结点）
+
+**原代码**：
+```cpp
+bool Create_Ploynominal(Ploynominal& P, int expn, double ceof) {
+    if (P->next == NULL) {
+        Ploy_node* q = (Ploy_node*)malloc(sizeof(Ploy_node));
+        q->ceof = ceof;
+        q->expn = expn;
+        q->next = P->next;
+        P->next = q;
+    } else {
+        while (P->next != NULL) {
+            if (P->next->expn == expn) {
+                P->next->ceof += ceof;
+            } else if (P->next->expn > expn) {
+                Ploy_node* q = (Ploy_node*)malloc(sizeof(Ploy_node));
+                q->ceof = ceof;
+                q->expn = expn;
+                q->next = P->next;
+                P->next = q;
+            } else {
+                P = P->next; // 错误：直接修改头指针
+            }
+        }
+    }
+    return true;
+}
+```
+
+**修改后代码**：
+```cpp
+bool Create_Ploynominal(Ploynominal& P, int expn, double ceof) {
+    Ploy_node* prev = P;
+    Ploy_node* curr = P->next;
+    while (curr != NULL && curr->expn < expn) {
+        prev = curr;
+        curr = curr->next;
+    }
+    if (curr != NULL && curr->expn == expn) {
+        curr->ceof += ceof;
+    } else {
+        Ploy_node* q = new Ploy_node;
+        q->ceof = ceof;
+        q->expn = expn;
+        q->next = curr;
+        prev->next = q;
+    }
+    return true;
+}
+```
+
+---
+
+#### 2. Add_Ploynominals（多项式相加）
+
+**原代码**：
+```cpp
+Ploynominal Add_Ploynominals(Ploynominal& P1, Ploynominal& P2) {
+    while (P1->next != NULL && P2->next != NULL) {
+        if (P1->next->expn == P2->next->expn) {
+            P1->next->ceof += P2->next->ceof;
+            P1->next = P1->next->next; // 错误：破坏链表结构
+            P2->next = P2->next->next;
+        } else if (P1->next->expn > P2->next->expn) {
+            Ploy_node* q = (Ploy_node*)malloc(sizeof(Ploy_node));
+            q->ceof = P2->next->ceof;
+            q->expn = P2->next->expn;
+            q->next = P1->next;
+            P1->next = q;
+            P2->next = P2->next->next;
+        }
+    }
+    // 未处理剩余节点
+}
+```
+
+**修改后代码**：
+```cpp
+Ploynominal Add_Ploynominals(Ploynominal& P1, Ploynominal& P2) {
+    Ploy_node* curr1 = P1->next;
+    Ploy_node* curr2 = P2->next;
+    while (curr1 != NULL && curr2 != NULL) {
+        if (curr1->expn == curr2->expn) {
+            curr1->ceof += curr2->ceof;
+            curr1 = curr1->next;
+            curr2 = curr2->next;
+        } else if (curr1->expn > curr2->expn) {
+            Ploy_node* q = new Ploy_node;
+            q->ceof = curr2->ceof;
+            q->expn = curr2->expn;
+            q->next = curr1;
+            P1->next = q;
+            curr2 = curr2->next;
+        } else {
+            curr1 = curr1->next;
+        }
+    }
+    while (curr2 != NULL) { // 处理剩余节点
+        Ploy_node* q = new Ploy_node;
+        q->ceof = curr2->ceof;
+        q->expn = curr2->expn;
+        q->next = P1->next;
+        P1->next = q;
+        curr2 = curr2->next;
+    }
+    return P1;
+}
+```
+
+---
+
+#### 3. delete_Ploy_node（删除结点）
+
+**原代码**：
+```cpp
+Ploynominal delete_Ploy_node(Ploynominal& P) {
+    while (P->next != NULL) {
+        if (P->next->expn == expn && P->next->ceof == ceof) {
+            Ploy_node* prev = P;
+            Ploy_node* curr = P->next;
+            while (curr != NULL) { // 冗余循环
+                if (curr->expn == expn && curr->ceof == ceof) {
+                    prev->next = curr->next;
+                    delete curr;
+                    return P;
+                }
+                prev = curr;
+                curr = curr->next;
+            }
+        }
+    }
+}
+```
+
+**修改后代码**：
+```cpp
+Ploynominal delete_Ploy_node(Ploynominal& P) {
+    Ploy_node* prev = P;
+    Ploy_node* curr = P->next;
+    while (curr != NULL) {
+        if (curr->expn == expn && curr->ceof == ceof) {
+            prev->next = curr->next;
+            delete curr;
+            return P;
+        }
+        prev = curr;
+        curr = curr->next;
+    }
+    cout << "没有找到要删除的项！" << endl;
+    return P;
+}
+```
+
+---
+
+### 二、其他关键修改
+
+#### 1. 内存管理
+```cpp
+// 原代码
+Ploy_node* q = (Ploy_node*)malloc(sizeof(Ploy_node));
+
+// 修改后（C++风格）
+Ploy_node* q = new Ploy_node;
+```
+
+#### 2. Print_Ploynominal（修复死循环）
+```cpp
+// 原代码错误
+while (P->next != NULL) { // 死循环
+    Print_Ploynominal(P);
+}
+
+// 修改后
+Ploy_node* q = P->next;
+while (q != NULL) {
+    // 打印逻辑
+    q = q->next;
+}
+```
+
+---
+
+### 三、修改总结表
+| 问题点                  | 原代码缺陷                          | 修改方案                                |
+|-----------------------|----------------------------------|--------------------------------------|
+| 链表指针管理             | 直接移动头指针导致链表断裂                 | 使用`prev`和`curr`双指针维护链表结构          |
+| 多项式相加逻辑           | 未处理剩余节点、破坏原链表结构               | 独立遍历指针、完整处理所有情况                 |
+| 内存泄漏               | 使用malloc/free而非new/delete       | 统一改用C++内存管理                      |
+| 删除结点效率           | 冗余双重循环                        | 单层循环+严格维护prev/curr关系             |
+| 打印函数逻辑           | while循环条件错误导致死循环              | 改用临时指针遍历                        |
+| 节点合并逻辑           | 仅处理头结点后的合并                    | 完整遍历链表处理所有相同指数项                |
+
+如果需要查看完整代码对比，可以告知具体函数或代码段。
